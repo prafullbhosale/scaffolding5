@@ -73,7 +73,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
                         logger,
                         isSimulationMode);
 
-                    var exitCode = executor.Execute((changes) => messageOrchestrator.SendFileSystemChangeInformation(changes));
+                    var exitCode = await executor.Execute((changes) => messageOrchestrator.SendFileSystemChangeInformation(changes));
 
                     messageOrchestrator.SendScaffoldingCompletedMessage();
 

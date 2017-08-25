@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
+using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.FileSystem;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Logging;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.ProjectModel;
@@ -18,6 +20,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
         private string _configuration;
         private ILogger _logger;
         private bool _isSimulationMode;
+        private CodeGenerationContext _codeGenerationContext;
 
         public CodeGenCommandExecutor(IProjectContext projectInformation, string[] codeGenArguments, string configuration, ILogger logger, bool isSimulationMode)
         {
@@ -29,25 +32,43 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
         }
 
 
-        internal int Execute(Action<IEnumerable<FileSystemChangeInformation>> simModeAction = null)
+        internal async Task<int> Execute(Action<IEnumerable<FileSystemChangeInformation>> simModeAction = null)
         {
             var serviceProvider = new ServiceProvider();
             AddFrameworkServices(serviceProvider, _projectInformation);
+            
             AddCodeGenerationServices(serviceProvider);
+
+
+            var codeGenCommand = serviceProvider.GetService(typeof(CodeGenCommand)) as CodeGenCommand;
+            var exitCode = await codeGenCommand.Execute(_codeGenerationContext, _codeGenArguments[0]);
+
             return 0;
         }
 
         private void AddFrameworkServices(ServiceProvider serviceProvider, IProjectContext projectInformation)
         {
+            //Ordering of services is important here
+
             var applicationInfo = new ApplicationInfo(
                 projectInformation.ProjectName,
                 Path.GetDirectoryName(projectInformation.ProjectFullPath));
             serviceProvider.Add<IProjectContext>(projectInformation);
+
+            _codeGenerationContext = new CodeGenerationContext(_codeGenArguments, projectInformation.ProjectFullPath);
+            serviceProvider.Add<CodeGenerationContext>(_codeGenerationContext);
+
             serviceProvider.Add<IApplicationInfo>(applicationInfo);
             serviceProvider.Add<ICodeGenAssemblyLoadContext>(new DefaultAssemblyLoadContext());
-
             serviceProvider.Add<WorkspaceManager>(WorkspaceManager.Create(projectInformation));
-            serviceProvider.Add<IFileSystem>(new DefaultFileSystem());
+
+            serviceProvider.Add(typeof(IFileSystem), DefaultFileSystem.Instance);
+            serviceProvider.Add(typeof(ILogger), _logger);
+
+            serviceProvider.AddServiceWithDependencies<ICodeGenerationAssemblyProvider, CodeGenerationAssemblyProvider>();
+            serviceProvider.AddServiceWithDependencies<ITemplateLocator, TemplateLocator>();
+
+            serviceProvider.AddServiceWithDependencies<CodeGenCommand, CodeGenCommand>();
         }
 
         private void AddCodeGenerationServices(ServiceProvider serviceProvider)
@@ -57,23 +78,10 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
                 throw new ArgumentNullException(nameof(serviceProvider));
             }
 
-            IFileSystem fileSystem = DefaultFileSystem.Instance;
-            //Ordering of services is important here
-            serviceProvider.Add(typeof(IFileSystem), fileSystem);
-            serviceProvider.Add(typeof(ILogger), _logger);
+            serviceProvider.AddServiceWithDependencies<IComponentRegistry, ComponentRegistry>();
+            var componentRegistry = serviceProvider.GetService(typeof(IComponentRegistry)) as IComponentRegistry;
 
-            serviceProvider.AddServiceWithDependencies<ICodeGenerationAssemblyProvider, CodeGenerationAssemblyProvider>();
-            serviceProvider.AddServiceWithDependencies<ITemplateLocator, TemplateLocator>();
-
-            //serviceProvider.AddServiceWithDependencies<ICompilationService, RoslynCompilationService>();
-            //serviceProvider.AddServiceWithDependencies<ITemplating, RazorTemplating>();
-
-            //serviceProvider.AddServiceWithDependencies<IModelTypesLocator, ModelTypesLocator>();
-            //serviceProvider.AddServiceWithDependencies<ICodeGeneratorActionsService, CodeGeneratorActionsService>();
-
-            //serviceProvider.AddServiceWithDependencies<IDbContextEditorServices, DbContextEditorServices>();
-            //serviceProvider.AddServiceWithDependencies<IEntityFrameworkService, EntityFrameworkServices>();
-            //serviceProvider.AddServiceWithDependencies<ICodeModelService, CodeModelService>();
+            componentRegistry.DiscoverAndRegisterComponents(_projectInformation, serviceProvider);
         }
     }
 }
