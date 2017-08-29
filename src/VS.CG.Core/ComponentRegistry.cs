@@ -10,23 +10,22 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Core
     {
         private CodeGenerationAssemblyProvider _codeGenAssemblyProvider;
         private ILogger _logger;
+        private ServiceProvider _serviceProvider;
 
         public ComponentRegistry(CodeGenerationAssemblyProvider assemblyProvider, ILogger logger)
         {
             _codeGenAssemblyProvider = assemblyProvider ?? throw new ArgumentNullException(nameof(assemblyProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _serviceProvider = new ServiceProvider();
         }
 
-        public void DiscoverAndRegisterComponents(IProjectContext projectContext, IServiceProvider serviceProvider)
+        public IServiceProvider ServiceProvider => _serviceProvider;
+
+        public void DiscoverAndRegisterComponents(IProjectContext projectContext)
         {
             if (projectContext == null)
             {
                 throw new ArgumentNullException(nameof(projectContext));
-            }
-
-            if (serviceProvider == null)
-            {
-                throw new ArgumentNullException(nameof(serviceProvider));
             }
 
             var candidates = _codeGenAssemblyProvider
@@ -41,7 +40,8 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Core
                     try
                     {
                         var instance = Activator.CreateInstance(candidate) as IComponentsProvider;
-                        instance.RegisterComponents(serviceProvider);
+                        instance.RegisterComponents(this);
+
                         _logger.Log($"Registered components by: {candidate.AssemblyQualifiedName}", LogMessageLevel.Trace);
                     }
                     catch (Exception ex)
@@ -58,6 +58,32 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Core
             {
                 _logger.Log("No components provider found.", LogMessageLevel.Trace);
             }
+        }
+
+        public T OfType<T>() where T : class
+        {
+            var candidate = _serviceProvider.GetService(typeof(T));
+            if (candidate is T)
+            {
+                return candidate as T;
+            }
+
+            throw new InvalidOperationException($"Could not get component of type {typeof(T).FullName}");
+        }
+
+        public void RegisterComponent<T>(object instance) where T : class
+        {
+            if (instance == null)
+            {
+                throw new ArgumentNullException(nameof(instance));
+            }
+
+            _serviceProvider.Add<T>(instance);
+        }
+
+        public void RegisterComponentWithDependencies<TService, TImplementation>() where TService : class
+        {
+            _serviceProvider.AddServiceWithDependencies<TService, TImplementation>();
         }
     }
 }

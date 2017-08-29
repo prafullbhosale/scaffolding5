@@ -34,54 +34,48 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
 
         internal async Task<int> Execute(Action<IEnumerable<FileSystemChangeInformation>> simModeAction = null)
         {
-            var serviceProvider = new ServiceProvider();
-            AddFrameworkServices(serviceProvider, _projectInformation);
-            
-            AddCodeGenerationServices(serviceProvider);
+            var loadContext = new DefaultAssemblyLoadContext();
+            var codeGenAssemblyProvider = new CodeGenerationAssemblyProvider(_projectInformation, loadContext);
 
+            var componentRegistry = new ComponentRegistry(codeGenAssemblyProvider, _logger);
+            AddFrameworkServices(componentRegistry, _projectInformation);
 
-            var codeGenCommand = serviceProvider.GetService(typeof(CodeGenCommand)) as CodeGenCommand;
+            AddServicesFromComponents(componentRegistry);
+
+            var codeGenCommand = componentRegistry.OfType<CodeGenCommand>();
             var exitCode = await codeGenCommand.Execute(_codeGenerationContext, _codeGenArguments[0]);
 
             return 0;
         }
 
-        private void AddFrameworkServices(ServiceProvider serviceProvider, IProjectContext projectInformation)
+        private void AddFrameworkServices(ComponentRegistry componentRegistry, IProjectContext projectInformation)
         {
             //Ordering of services is important here
 
             var applicationInfo = new ApplicationInfo(
                 projectInformation.ProjectName,
                 Path.GetDirectoryName(projectInformation.ProjectFullPath));
-            serviceProvider.Add<IProjectContext>(projectInformation);
+            componentRegistry.RegisterComponent<IProjectContext>(projectInformation);
 
             _codeGenerationContext = new CodeGenerationContext(_codeGenArguments, projectInformation.ProjectFullPath);
-            serviceProvider.Add<CodeGenerationContext>(_codeGenerationContext);
+            componentRegistry.RegisterComponent<CodeGenerationContext>(_codeGenerationContext);
 
-            serviceProvider.Add<IApplicationInfo>(applicationInfo);
-            serviceProvider.Add<ICodeGenAssemblyLoadContext>(new DefaultAssemblyLoadContext());
-            serviceProvider.Add<WorkspaceManager>(WorkspaceManager.Create(projectInformation));
+            componentRegistry.RegisterComponent<IApplicationInfo>(applicationInfo);
+            componentRegistry.RegisterComponent<ICodeGenAssemblyLoadContext>(new DefaultAssemblyLoadContext());
+            componentRegistry.RegisterComponent<WorkspaceManager>(WorkspaceManager.Create(projectInformation));
 
-            serviceProvider.Add(typeof(IFileSystem), DefaultFileSystem.Instance);
-            serviceProvider.Add(typeof(ILogger), _logger);
+            componentRegistry.RegisterComponent<IFileSystem>(DefaultFileSystem.Instance);
+            componentRegistry.RegisterComponent<ILogger>(_logger);
 
-            serviceProvider.AddServiceWithDependencies<ICodeGenerationAssemblyProvider, CodeGenerationAssemblyProvider>();
-            serviceProvider.AddServiceWithDependencies<ITemplateLocator, TemplateLocator>();
+            componentRegistry.RegisterComponentWithDependencies<ICodeGenerationAssemblyProvider, CodeGenerationAssemblyProvider>();
+            componentRegistry.RegisterComponentWithDependencies<ITemplateLocator, TemplateLocator>();
 
-            serviceProvider.AddServiceWithDependencies<CodeGenCommand, CodeGenCommand>();
+            componentRegistry.RegisterComponentWithDependencies<CodeGenCommand, CodeGenCommand>();
         }
 
-        private void AddCodeGenerationServices(ServiceProvider serviceProvider)
+        private void AddServicesFromComponents(ComponentRegistry componentRegistry)
         {
-            if (serviceProvider == null)
-            {
-                throw new ArgumentNullException(nameof(serviceProvider));
-            }
-
-            serviceProvider.AddServiceWithDependencies<IComponentRegistry, ComponentRegistry>();
-            var componentRegistry = serviceProvider.GetService(typeof(IComponentRegistry)) as IComponentRegistry;
-
-            componentRegistry.DiscoverAndRegisterComponents(_projectInformation, serviceProvider);
+            componentRegistry.DiscoverAndRegisterComponents(_projectInformation);
         }
     }
 }

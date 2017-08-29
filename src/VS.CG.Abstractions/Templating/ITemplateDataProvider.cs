@@ -10,7 +10,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
     public interface ITemplateDataProvider
     {
         string[] DataContracts { get; }
-        JToken GetData(string dataContract, CodeGenerationContext context);
+        JObject GetData(string dataContract, CodeGenerationContext context);
     }
 
     public abstract class TemplateDataProviderBase : ITemplateDataProvider
@@ -32,7 +32,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
 
         public string[] DataContracts { get; }
 
-        public JToken GetData(string dataContract, CodeGenerationContext context)
+        public JObject GetData(string dataContract, CodeGenerationContext context)
         {
             if (string.IsNullOrEmpty(nameof(dataContract)))
             {
@@ -47,6 +47,6 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
             return GetDataForContract(dataContract, context);
         }
 
-        protected abstract JToken GetDataForContract(string dataContract, CodeGenerationContext context);
+        protected abstract JObject GetDataForContract(string dataContract, CodeGenerationContext context);
     }
 }

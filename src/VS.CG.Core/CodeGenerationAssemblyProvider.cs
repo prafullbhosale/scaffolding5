@@ -12,7 +12,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Core
         private static readonly HashSet<string> _codeGenerationFrameworkAssemblies =
             new HashSet<string>(StringComparer.Ordinal)
             {
-                "Microsoft.VisualStudio.Web.CodeGeneration",
+                "Microsoft.VisualStudio.Web.CodeGeneration.Core",
             };
         private static readonly HashSet<string> _exclusions =
             new HashSet<string>(StringComparer.Ordinal)

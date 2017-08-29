@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Logging;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating;
+using Newtonsoft.Json.Linq;
 
 namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
 {
@@ -34,8 +37,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
 
             var template = _templateLocator.FindTemplate(codeGeneratorName) as TemplateBase;
             var dataProvider = _dataProviderLocator.FindDataProvider(template);
-
-            var templateData = dataProvider.GetData(template.DataContract, codeGenerationContext);
+            var templateData = GetTemplateData(codeGenerationContext, template);
 
             var templateProcessingResult = await _templateProcessor.ProcessTemplateAsync(template, templateData);
 
@@ -52,6 +54,39 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
 
 
             return 0;
+        }
+
+        private JObject GetTemplateData(CodeGenerationContext codeGenerationContext, TemplateBase template)
+        {
+            var dataProviders = _dataProviderLocator.FindDataProvider(template);
+            IEnumerable<string> missingDataProviders = null;
+            if (dataProviders == null)
+            {
+                missingDataProviders = template.DataContracts;
+            }
+            else
+            {
+                missingDataProviders = template.DataContracts.Where(t => !dataProviders.ContainsKey(t));
+            }
+
+            if (missingDataProviders.Any())
+            {
+                throw new InvalidOperationException(
+                    string.Format("Could not locate data providers for the following data contracts: {0}",
+                        string.Join(',', missingDataProviders)));
+            }
+
+            var result = JObject.Parse("{}");
+            foreach (var dp in dataProviders)
+            {
+                var dataObj = dp.Value.GetData(dp.Key, codeGenerationContext);
+                if (dataObj == null)
+                {
+                    _logger.Log(string.Format("Received null data for data contract: {0}", dp.Key), LogMessageLevel.Trace);
+                }
+            }
+
+            return result;
         }
     }
 }

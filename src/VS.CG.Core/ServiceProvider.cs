@@ -10,7 +10,7 @@ using System.Linq;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Microsoft.VisualStudio.Web.CodeGeneration.Design
+namespace Microsoft.VisualStudio.Web.CodeGeneration.Core
 {
     internal class ServiceProvider : IServiceProvider
     {

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\build\common.props" />
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>Microsoft.VisualStudio.Web.CodeGenerators.MVC</AssemblyName>
+    <RootNamespace>Microsoft.VisualStudio.Web.CodeGenerators.MVC</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\VS.CG.Core\VS.CG.Core.csproj" />
+    <ProjectReference Include="..\VS.CG.Templating.Razor\VS.CG.Templating.Razor.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Templates\RazorPages\" />
+    <Folder Include="Templates\Views\" />
+
+    <None Pack="true" Include="Templates\Controller\*" PackagePath="Templates\Controllers\" />
+    <None Pack="true" Include="Templates\RazorPages\*" PackagePath="Templates\RazorPages\" />
+    <None Pack="true" Include="Templates\Views\*" PackagePath="Templates\Views\" />
+
+  </ItemGroup>
+
+</Project>

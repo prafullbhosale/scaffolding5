@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.FileSystem;
 using Newtonsoft.Json;
@@ -28,7 +26,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
             }
         }
 
-        public virtual async Task<TemplateProcessingResult> ProcessTemplateAsync(TemplateBase template, JToken templateData)
+        public virtual async Task<TemplateProcessingResult> ProcessTemplateAsync(TemplateBase template, JObject templateData)
         {
             if (template == null)
             {

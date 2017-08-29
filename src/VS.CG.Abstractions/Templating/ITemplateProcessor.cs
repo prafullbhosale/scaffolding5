@@ -12,6 +12,6 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
 {
     public interface ITemplateProcessor
     {
-        Task<TemplateProcessingResult> ProcessTemplateAsync(TemplateBase template, JToken templateData);
+        Task<TemplateProcessingResult> ProcessTemplateAsync(TemplateBase template, JObject templateData);
     }
 }

@@ -12,7 +12,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
         string [] TemplateSources { get; }
         string[] CopyOnlySources { get; }
 
-        string DataContract { get; }
+        string[] DataContracts { get; }
     }
 
     public abstract class TemplateBase : ITemplate
@@ -20,7 +20,7 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
         public string[] TemplateSources { get; set; }
         public string[] CopyOnlySources { get; set; }
 
-        public string DataContract { get; set; }
+        public string[] DataContracts { get; set; }
 
         public abstract string Processor { get; }
     }

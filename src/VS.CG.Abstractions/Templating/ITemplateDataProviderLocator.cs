@@ -6,6 +6,6 @@ namespace Microsoft.VisualStudio.Web.CodeGeneration.Abstractions.Templating
 {
     public interface ITemplateDataProviderLocator
     {
-        ITemplateDataProvider FindDataProvider(ITemplate template);
+        IDictionary<string, ITemplateDataProvider> FindDataProvider(ITemplate template);
     }
 }
